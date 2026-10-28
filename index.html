@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box}body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}</style>
-<title>Маджонг Черепаха</title>
+<title>Маджонг-пасьянс</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,7 +14,7 @@
 /* Layout: a single-screen game table. Slim header with seal + stats, the board fills the rest, toolbar under it. */
 :root{
   --bg:#dde4d8; --bg2:#cfd8c9; --fg:#1d2721; --muted:#5b6a60; --accent:#b23f2a; --accent-soft:#f3d6cc;
-  --line:#b9c5b4; --btn:#f3f5ef; --btn-fg:#1d2721;
+  --line:#b9c5b4; --btn:#f3f5ef; --btn-fg:#1d2721; --scrim:rgba(10,20,15,.45);
   --tile:#f7f2e4; --tile-edge:#e0d5b9; --tile-back:#2e6a53; --tile-shade:rgba(30,45,35,.28);
   --t-red:#b8322a; --t-green:#1f7a4a; --t-blue:#24448f; --t-ink:#1b2333; --t-iv:#f7f2e4;
   --sel:#f6d5c8; --hint:#cfe8d6;
@@ -24,12 +24,12 @@
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#122019; --bg2:#0d1813; --fg:#e3e9e1; --muted:#93a399; --accent:#e46b50; --accent-soft:#4a2a22;
-  --line:#2c3e33; --btn:#1b2c23; --btn-fg:#e3e9e1;
+  --line:#2c3e33; --btn:#1b2c23; --btn-fg:#e3e9e1; --scrim:rgba(0,0,0,.6);
   --tile:#ece4cf; --tile-edge:#c9bc9a; --tile-back:#3d8a6b; --tile-shade:rgba(0,0,0,.55);
   --sel:#f1c4b3; --hint:#bfe3c9; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#122019; --bg2:#0d1813; --fg:#e3e9e1; --muted:#93a399; --accent:#e46b50; --accent-soft:#4a2a22;
-  --line:#2c3e33; --btn:#1b2c23; --btn-fg:#e3e9e1;
+  --line:#2c3e33; --btn:#1b2c23; --btn-fg:#e3e9e1; --scrim:rgba(0,0,0,.6);
   --tile:#ece4cf; --tile-edge:#c9bc9a; --tile-back:#3d8a6b; --tile-shade:rgba(0,0,0,.55);
   --sel:#f1c4b3; --hint:#bfe3c9; color-scheme:dark}
 
@@ -40,11 +40,17 @@ body{background:radial-gradient(ellipse at 50% 40%, var(--bg) 0%, var(--bg2) 100
   -webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
 
 header{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding-block:12px 6px}
-.brand{display:flex;align-items:center;gap:12px}
-.seal{width:40px;height:40px;background:var(--accent);color:#fbefe6;border-radius:6px;display:grid;place-items:center;
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.seal{width:40px;height:40px;flex:none;background:var(--accent);color:#fbefe6;border-radius:6px;display:grid;place-items:center;
   font-family:var(--f-tile);font-size:30px;line-height:1;transform:rotate(-4deg);box-shadow:inset 0 0 0 2px rgba(255,255,255,.25)}
 h1{font-family:var(--f-display);font-weight:600;font-size:clamp(26px,3.4vw,36px);margin:0;letter-spacing:.01em;line-height:1}
-h1 em{font-style:italic;color:var(--muted);font-size:.62em;margin-left:6px}
+.sub{display:flex;gap:8px;align-items:center;margin-top:3px;font-size:13px;color:var(--muted)}
+.sub i{font-family:var(--f-display);font-size:18px;color:var(--fg)}
+.chip{font-size:11px;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line);border-radius:999px;padding:2px 8px}
+.chip.easy{color:var(--t-green);border-color:currentColor}
+.chip.medium{color:var(--t-blue);border-color:currentColor}
+.chip.hard{color:var(--accent);border-color:currentColor}
+:root:not([data-theme="light"]) .chip.easy, :root:not([data-theme="light"]) .chip.medium{color:var(--fg)}
 .stats{display:flex;gap:22px;margin-left:auto;font-variant-numeric:tabular-nums}
 .stat{display:flex;flex-direction:column;align-items:flex-end}
 .stat b{font-size:20px;font-weight:600;line-height:1.1}
@@ -68,6 +74,8 @@ main{flex:1;min-height:0;position:relative;display:grid;place-items:center}
 .dim .tile.blocked{filter:brightness(.78) saturate(.7)}
 .tile.shake{animation:shake .3s}
 @keyframes shake{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+#board.enter .tile{animation:drop .45s cubic-bezier(.2,.8,.3,1.2) backwards}
+@keyframes drop{from{opacity:0;transform:translateY(-14px) scale(.96)}}
 
 .r{fill:var(--t-red)} .g{fill:var(--t-green)} .b{fill:var(--t-blue)} .k{fill:var(--t-ink)} .iv{fill:var(--t-iv)}
 .gl{font-family:var(--f-tile)} .ix{font-family:var(--f-ui);font-weight:600}
@@ -80,17 +88,35 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 button:disabled{opacity:.45;cursor:default;border-color:var(--line)}
 button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 button kbd{font:600 11px var(--f-ui);opacity:.55}
+button .n{font-variant-numeric:tabular-nums;font-weight:600;opacity:.7}
 .toggle[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
 
 .banner{position:absolute;left:50%;top:14px;transform:translateX(-50%);z-index:20000;background:var(--btn);border:1px solid var(--line);
-  border-radius:14px;padding:12px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center;
+  border-radius:14px;padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center;
   box-shadow:0 10px 30px rgba(0,0,0,.18);max-width:calc(100% - 16px);font-size:15px}
-.overlay{position:fixed;inset:0;z-index:30000;display:grid;place-items:center;background:rgba(10,20,15,.45);padding:16px}
-.card{background:var(--btn);color:var(--fg);border-radius:18px;padding:28px 30px;text-align:center;max-width:360px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.3)}
-.card h2{font-family:var(--f-display);font-size:40px;margin:6px 0 4px;font-weight:600}
+.overlay{position:fixed;inset:0;z-index:30000;display:grid;place-items:center;background:var(--scrim);
+  padding:max(16px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px))}
+.card{background:var(--btn);color:var(--fg);border-radius:18px;padding:26px 28px;text-align:center;max-width:380px;width:100%;
+  box-shadow:0 24px 60px rgba(0,0,0,.3);max-height:100%;overflow-y:auto;box-sizing:border-box}
+.card h2{font-family:var(--f-display);font-size:38px;margin:6px 0 4px;font-weight:600;line-height:1.05}
 .card p{margin:6px 0;color:var(--muted);font-variant-numeric:tabular-nums}
 .card .big{font-size:28px;color:var(--fg);font-weight:600}
 .card .row{display:flex;gap:8px;justify-content:center;margin-top:18px;flex-wrap:wrap}
+
+.picker{max-width:640px;text-align:left}
+.picker h2{margin-top:0}
+.lbl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:16px 0 8px}
+.layouts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.lay{flex-direction:column;align-items:stretch;gap:6px;border-radius:12px;padding:10px;text-align:left;background:transparent}
+.lay canvas{width:100%;aspect-ratio:16/10;display:block;border-radius:6px;background:var(--bg)}
+.lay .nm{font-family:var(--f-display);font-size:20px;font-weight:600;line-height:1}
+.lay .ct{font-size:12px;color:var(--muted);line-height:1.3}
+.lay[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--accent-soft)}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.seg button{justify-content:center;border-radius:10px;padding:12px 8px}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--btn);border-color:var(--fg)}
+.desc{min-height:2.6em;font-size:14px;line-height:1.4}
+.picker .row{justify-content:flex-end}
 
 @media (max-width:640px){
   header{gap:10px}
@@ -99,14 +125,37 @@ button kbd{font:600 11px var(--f-ui);opacity:.55}
   .stat b{font-size:17px}
   button{padding:9px 12px;font-size:13px}
   button kbd{display:none}
+  .layouts{grid-template-columns:repeat(2,1fr)}
+  .card{padding:20px 16px}
+  .card h2{font-size:32px}
+  /* compact chrome so the board gets the screen */
+  header{flex-wrap:nowrap;padding-block:8px 4px;gap:12px}
+  .seal{width:30px;height:30px;font-size:22px;border-radius:5px}
+  h1{font-size:22px}
+  .sub{margin-top:1px;font-size:11px;gap:6px}
+  .sub i{font-size:15px}
+  .chip{font-size:9px;padding:1px 6px}
+  .stats{width:auto;margin-left:auto;gap:12px;justify-content:flex-end}
+  .stat{align-items:flex-end}
+  .stat b{font-size:15px}
+  .stat span{font-size:9px;letter-spacing:.04em}
+  .stat:nth-child(2) span{font-size:0}
+  .stat:nth-child(2) span::after{content:"Пар";font-size:9px}
+  footer{flex-wrap:nowrap;gap:5px;padding-block:6px 10px}
+  footer button{flex:1 1 0;justify-content:center;padding:11px 4px;font-size:13px;gap:4px;min-width:0}
 }
-@media (prefers-reduced-motion:reduce){.tile{transition:none}.tile.hint,.tile.shake{animation:none}.tile.hint{background:var(--hint)}}
+.sm{display:none}
+@media (max-width:640px){ .lg{display:none} .sm{display:inline} }
+@media (max-width:360px){ .stat:nth-child(4){display:none} }
+@media (prefers-reduced-motion:reduce){.tile{transition:none}.tile.hint,.tile.shake,#board.enter .tile{animation:none}.tile.hint{background:var(--hint)}}
 </style>
 </head>
 <body>
 
 <header>
-  <div class="brand"><div class="seal" aria-hidden="true">麻</div><h1>Маджонг<em>черепаха</em></h1></div>
+  <div class="brand"><div class="seal" aria-hidden="true">麻</div>
+    <div><h1>Маджонг</h1><div class="sub"><i id="hLayout">Черепаха</i><span id="hDiff" class="chip medium">Средняя</span></div></div>
+  </div>
   <div class="stats">
     <div class="stat"><b id="sLeft">144</b><span>Фишек</span></div>
     <div class="stat"><b id="sMoves">0</b><span>Пар доступно</span></div>
@@ -116,55 +165,147 @@ button kbd{font:600 11px var(--f-ui);opacity:.55}
 </header>
 <main id="main"><div id="board"></div></main>
 <footer>
-  <button id="bHint">Подсказка <kbd>H</kbd></button>
-  <button id="bUndo">Отменить <kbd>Z</kbd></button>
-  <button id="bShuffle">Перемешать</button>
-  <button id="bDim" class="toggle" aria-pressed="true">Затенять закрытые</button>
-  <button id="bNew" class="primary">Новая игра</button>
+  <button id="bHint"><span class="lg">Подсказка</span><span class="sm">Совет</span> <span class="n" id="nHint"></span><kbd>H</kbd></button>
+  <button id="bUndo"><span class="lg">Отменить</span><span class="sm">Назад</span> <kbd>Z</kbd></button>
+  <button id="bShuffle"><span class="lg">Перемешать</span><span class="sm">Мешать</span> <span class="n" id="nShuf"></span></button>
+  <button id="bDim" class="toggle" aria-pressed="true"><span class="lg">Затенять закрытые</span><span class="sm">Тень</span></button>
+  <button id="bNew" class="primary"><span class="lg">Новая игра</span><span class="sm">Новая</span></button>
 </footer>
 
 <script>
 (() => {
-// ---------- Layout: classic "Turtle", coordinates in half-tile units ----------
-const P = [];
-const add = (x, y, z) => P.push({ x: Math.round(x * 2), y: Math.round(y * 2), z });
-[[1,12],[3,10],[2,11],[1,12],[1,12],[2,11],[3,10],[1,12]].forEach(([a,b], y) => { for (let x = a; x <= b; x++) add(x, y, 0); });
-add(0, 3.5, 0); add(13, 3.5, 0); add(14, 3.5, 0);
-for (let y = 1; y <= 6; y++) for (let x = 4; x <= 9; x++) add(x, y, 1);
-for (let y = 2; y <= 5; y++) for (let x = 5; x <= 8; x++) add(x, y, 2);
-for (let y = 3; y <= 4; y++) for (let x = 6; x <= 7; x++) add(x, y, 3);
-add(6.5, 3.5, 4);
-const N = P.length; // 144
+// ================= Layouts (tile units; .5 = half-tile offset) =================
+function rows(list, z, dx = 0, dy = 0, out) {
+  list.forEach((r, y) => [...r].forEach((c, x) => { if (c === '#') out.push([x + dx, y + dy, z]); }));
+}
+function rect(x0, y0, w, h, z, out) { for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) out.push([x0 + x, y0 + y, z]); }
 
-const ABOVE = [], LEFT = [], RIGHT = [];
-for (let i = 0; i < N; i++) {
-  ABOVE[i] = []; LEFT[i] = []; RIGHT[i] = [];
-  for (let j = 0; j < N; j++) {
-    if (i === j) continue;
-    const dx = P[j].x - P[i].x, dy = P[j].y - P[i].y;
-    if (Math.abs(dy) >= 2) continue;
-    if (P[j].z === P[i].z + 1 && Math.abs(dx) < 2) ABOVE[i].push(j);
-    if (P[j].z === P[i].z) { if (dx === -2) LEFT[i].push(j); if (dx === 2) RIGHT[i].push(j); }
+const LAYOUTS = {
+  turtle: { name: 'Черепаха', note: 'Классика, 5 ярусов', build() {
+    const o = [];
+    [[1,12],[3,10],[2,11],[1,12],[1,12],[2,11],[3,10],[1,12]].forEach(([a,b], y) => { for (let x = a; x <= b; x++) o.push([x, y, 0]); });
+    o.push([0,3.5,0],[13,3.5,0],[14,3.5,0]);
+    rect(4,1,6,6,1,o); rect(5,2,4,4,2,o); rect(6,3,2,2,3,o); o.push([6.5,3.5,4]);
+    return o; } },
+  pyramid: { name: 'Пирамида', note: 'Широкое основание, острая вершина', build() {
+    const o = [];
+    rect(0,0,12,6,0,o); rect(1,1,10,4,1,o); rect(2,2,8,2,2,o);
+    o.push([4.5,2.5,3],[5.5,2.5,3],[6.5,2.5,3],[5.5,2.5,4]);
+    return o; } },
+  fortress: { name: 'Крепость', note: 'Стены, двор и четыре башни', build() {
+    const o = [];
+    rows(Array(7).fill('.############.'), 0, 0, 0, o);
+    rows(['.############.', '.#..........#.', '.#..........#.', '.#..........#.', '.#..........#.', '.#..........#.', '.############.'], 1, 0, 0, o);
+    rows(['.##........##.', '.##........##.', '', '', '', '.##........##.', '.##........##.'], 2, 0, 0, o);
+    o.push([1.5,0.5,3],[11.5,0.5,3],[1.5,5.5,3],[11.5,5.5,3]);
+    return o; } },
+  butterfly: { name: 'Бабочка', note: 'Два крыла и тело посередине', build() {
+    const o = [];
+    rows(['###........###', '####..##..####', '#####.##.#####', '.############.', '.############.', '#####.##.#####', '####..##..####', '###........###'], 0, 0, 0, o);
+    rows(['', '.##........##.', '.###..##..###.', '..##########..', '..##########..', '.###..##..###.', '.##........##.', ''], 1, 0, 0, o);
+    rows(['', '', '......##......', '...##.##.##...', '...##.##.##...', '......##......'], 2, 0, 0, o);
+    o.push([6,3,3],[7,3,3],[6,4,3],[7,4,3]);
+    return o; } },
+  bridge: { name: 'Мост', note: 'Два острова и переправа', build() {
+    const o = [];
+    rows(['####......####', '####......####', '####......####', '##############', '##############', '####......####', '####......####', '####......####'], 0, 0, 0, o);
+    rows(['', '.##........##.', '.##........##.', '.############.', '.############.', '.##........##.', '.##........##.', ''], 1, 0, 0, o);
+    rows(['', '', '.##........##.', '....######....', '....######....', '.##........##.'], 2, 0, 0, o);
+    rows(['', '', '', '......##......', '......##......'], 3, 0, 0, o);
+    return o; } },
+  random: { name: 'Случайная', note: 'Новая форма каждый раз', build: genRandom },
+};
+const ORDER = ['turtle', 'pyramid', 'fortress', 'butterfly', 'bridge', 'random'];
+
+// Procedural symmetric layout: rows of tiles mirrored left/right, stacked into random hills.
+function genRandom() {
+  const ri = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  for (let t = 0; t < 200; t++) {
+    const W = 14, half = 7, H = ri(6, 8), mirrorV = Math.random() < .6;
+    const grid = [...Array(H)].map(() => new Array(W).fill(false));
+    let a = ri(0, 3);
+    const hollow = Math.random() < .35, gapW = ri(1, 2);
+    for (let y = 0; y < H; y++) {
+      if (mirrorV && y >= Math.ceil(H / 2)) { grid[y] = grid[H - 1 - y].slice(); continue; }
+      a = Math.max(0, Math.min(5, a + ri(-2, 2)));
+      for (let x = a; x < half; x++) {
+        let on = true;
+        if (hollow && y > 0 && y < H - 1 && x >= half - gapW) on = false;
+        if (Math.random() < .06) on = false;
+        grid[y][x] = grid[y][W - 1 - x] = on;
+      }
+    }
+    const o = [];
+    grid.forEach((r, y) => r.forEach((c, x) => c && o.push([x, y, 0])));
+    let cur = grid, z = 0;
+    const keep = [.92, .82, .7, .55];
+    const style = ri(0, 2); // 0 = hills, 1 = plateau, 2 = towers
+    while (z < 4) {
+      const nx = cur.map(r => r.map(() => false));
+      let any = false;
+      for (let y = 0; y < H; y++) for (let x = 0; x < half; x++) {
+        if (!cur[y][x]) continue;
+        const inner = x > 0 && cur[y][x - 1] && cur[y][x + 1];
+        const vInner = y > 0 && y < H - 1 && cur[y - 1][x] && cur[y + 1][x];
+        let ok = inner && Math.random() < keep[z];
+        if (style === 1) ok = ok && (vInner || z === 0);
+        if (style === 2) ok = inner && vInner && Math.random() < keep[z] - .15;
+        if (mirrorV && y >= Math.ceil(H / 2)) ok = nx[H - 1 - y][x];
+        if (ok) { nx[y][x] = nx[y][W - 1 - x] = true; any = true; }
+      }
+      if (!any) break;
+      z++;
+      nx.forEach((r, y) => r.forEach((c, x) => c && o.push([x, y, z])));
+      cur = nx;
+    }
+    if (o.length >= 84 && o.length <= 144 && z >= 2) return o;
+  }
+  return LAYOUTS.turtle.build();
+}
+
+const DIFF = {
+  easy:   { name: 'Лёгкая',  hints: -1, shuf: -1, desc: 'Одинаковые фишки чаще лежат рядом. Подсказки и перемешивания без ограничений.' },
+  medium: { name: 'Средняя', hints: 5,  shuf: 3,  desc: 'Обычная раздача. 5 подсказок и 3 перемешивания на партию.' },
+  hard:   { name: 'Сложная', hints: 2,  shuf: 1,  desc: 'Пары разбросаны по всему полю, счётчик свободных пар скрыт. 2 подсказки и 1 перемешивание.' },
+};
+
+// ================= Geometry =================
+let P = [], N = 0, ABOVE = [], LEFT = [], RIGHT = [];
+function setPositions(pos) {
+  P = pos.map(([x, y, z]) => ({ x: Math.round(x * 2), y: Math.round(y * 2), z }));
+  const minX = Math.min(...P.map(p => p.x)), minY = Math.min(...P.map(p => p.y));
+  P.forEach(p => { p.x -= minX; p.y -= minY; });
+  N = P.length; ABOVE = []; LEFT = []; RIGHT = [];
+  for (let i = 0; i < N; i++) {
+    ABOVE[i] = []; LEFT[i] = []; RIGHT[i] = [];
+    for (let j = 0; j < N; j++) {
+      if (i === j) continue;
+      const dx = P[j].x - P[i].x, dy = P[j].y - P[i].y;
+      if (Math.abs(dy) >= 2) continue;
+      if (P[j].z === P[i].z + 1 && Math.abs(dx) < 2) ABOVE[i].push(j);
+      if (P[j].z === P[i].z) { if (dx === -2) LEFT[i].push(j); if (dx === 2) RIGHT[i].push(j); }
+    }
   }
 }
 const isFree = (i, pr) => pr[i] && ABOVE[i].every(j => !pr[j]) && (LEFT[i].every(j => !pr[j]) || RIGHT[i].every(j => !pr[j]));
 
-// ---------- Tile set ----------
+// ================= Tiles =================
 const KINDS = [];
 for (const s of ['d','b','c']) for (let n = 1; n <= 9; n++) KINDS.push(s + n);
 ['wE','wS','wW','wN','dr','dg','dw'].forEach(k => KINDS.push(k));
 const group = f => f[0] === 'f' || f[0] === 's' ? f[0] : f;
-function fullPairs() {
-  const pairs = [];
-  KINDS.forEach(k => { pairs.push([k,k], [k,k]); });
-  pairs.push(['f1','f2'], ['f3','f4'], ['s1','s2'], ['s3','s4']);
-  return pairs;
-}
 const rnd = n => Math.floor(Math.random() * n);
 const shuffleArr = a => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+function pairsFor(n) {
+  const pairs = [];
+  KINDS.forEach(k => pairs.push([k,k], [k,k]));
+  pairs.push(['f1','f2'], ['f3','f4'], ['s1','s2'], ['s3','s4']);
+  return shuffleArr(pairs).slice(0, n / 2);
+}
+const dist = (a, b) => Math.hypot(P[a].x - P[b].x, (P[a].y - P[b].y) * 1.3, (P[a].z - P[b].z) * 2);
 
-// Deal by reverse play: remove free pairs of positions from the filled shape, assigning matching faces. Always solvable.
-function deal(indices, pairs) {
+// Deal by playing the layout forward: repeatedly take two free positions and give them a matching pair. Always solvable.
+function deal(indices, pairs, diff) {
   for (let attempt = 0; attempt < 400; attempt++) {
     const pr = new Array(N).fill(false); indices.forEach(i => pr[i] = true);
     const ps = shuffleArr(pairs.slice()), faces = {};
@@ -172,9 +313,12 @@ function deal(indices, pairs) {
     for (let k = 0; k < ps.length; k++) {
       const free = indices.filter(i => isFree(i, pr));
       if (free.length < 2) { ok = false; break; }
-      // prefer higher tiles a bit, so stacks don't strand a lone tile
       free.sort((a, b) => P[b].z - P[a].z + (Math.random() - .5) * 2.2);
-      const a = free[0]; const rest = free.slice(1); const b = rest[rnd(rest.length)];
+      const a = free[0], rest = free.slice(1);
+      let b;
+      if (diff === 'easy') b = rest.reduce((m, c) => dist(a, c) + Math.random() * 4 < dist(a, m) + Math.random() * 4 ? c : m);
+      else if (diff === 'hard') b = rest.reduce((m, c) => dist(a, c) + Math.random() * 3 > dist(a, m) + Math.random() * 3 ? c : m);
+      else b = rest[rnd(rest.length)];
       const [fa, fb] = Math.random() < .5 ? ps[k] : [ps[k][1], ps[k][0]];
       faces[a] = fa; faces[b] = fb; pr[a] = pr[b] = false;
     }
@@ -183,7 +327,7 @@ function deal(indices, pairs) {
   return null;
 }
 
-// ---------- Tile faces (SVG, viewBox 60x80) ----------
+// ================= Faces (SVG 60x80) =================
 const CN = ['','一','二','三','四','五','六','七','八','九'];
 const dot = (x, y, r, c) => `<circle cx="${x}" cy="${y}" r="${r}" class="${c}"/><circle cx="${x}" cy="${y}" r="${r*.64}" class="iv"/><circle cx="${x}" cy="${y}" r="${r*.32}" class="${c}"/>`;
 const DOTS = {
@@ -243,31 +387,43 @@ const NAMES = f => {
   if (t === 'f') return 'цветок'; return 'сезон';
 };
 
-// ---------- State ----------
-const KEY = 'mahjong-turtle-v1', BEST = 'mahjong-turtle-best';
-let S; // {faces, present, history, elapsed, started, won}
-let runStart = 0, selected = -1;
+// ================= State =================
+const KEY = 'mahjong-v2', BEST = 'mahjong-best-v2';
 const store = {
   get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
   set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
 };
-let prefs = { dim: true };
+let prefs = { dim: true, layout: 'turtle', diff: 'medium' };
 try { prefs = Object.assign(prefs, JSON.parse(store.get('mahjong-prefs') || '{}')); } catch (e) {}
+const savePrefs = () => store.set('mahjong-prefs', JSON.stringify(prefs));
+let bests = {};
+try { bests = JSON.parse(store.get(BEST) || '{}') || {}; } catch (e) {}
+const bestKey = () => S.layout === 'random' ? 'random|' + S.diff : S.layout + '|' + S.diff;
 
-function newGame() {
-  const faces = deal([...Array(N).keys()], fullPairs());
-  S = { faces: [...Array(N).keys()].map(i => faces[i]), present: new Array(N).fill(true), history: [], elapsed: 0, started: false, won: false };
+let S, runStart = 0, selected = -1;
+
+function newGame(layout, diff, pos) {
+  for (let t = 0; t < 30; t++) {
+    let p = pos || LAYOUTS[layout].build();
+    const portrait = isPortrait();
+    if (portrait) p = p.map(([x, y, z]) => [y, x, z]); // tall screen: turn the board so it runs down the phone
+    setPositions(p);
+    const idx = [...Array(N).keys()];
+    const faces = deal(idx, pairsFor(N), diff);
+    if (!faces) { pos = null; continue; }
+    S = { layout, diff, pos: P.map(q => [q.x / 2, q.y / 2, q.z]), faces: idx.map(i => faces[i]), present: new Array(N).fill(true),
+      history: [], elapsed: 0, started: false, won: false, portrait, hints: DIFF[diff].hints, shuf: DIFF[diff].shuf };
+    break;
+  }
+  prefs.layout = layout; prefs.diff = diff; savePrefs();
   selected = -1; runStart = 0;
-  build(); save(); closeOverlay();
+  closeOverlay(); build(true); save();
 }
-function save() {
-  const s = Object.assign({}, S, { elapsed: elapsed() });
-  store.set(KEY, JSON.stringify(s));
-}
+function save() { store.set(KEY, JSON.stringify(Object.assign({}, S, { elapsed: elapsed() }))); }
 function load() {
   try {
     const s = JSON.parse(store.get(KEY));
-    if (s && s.faces && s.faces.length === N && !s.won) { S = s; return true; }
+    if (s && s.pos && s.faces && s.faces.length === s.pos.length && !s.won && LAYOUTS[s.layout] && DIFF[s.diff]) { S = s; setPositions(s.pos); return true; }
   } catch (e) {}
   return false;
 }
@@ -278,10 +434,11 @@ function stopClock() { if (runStart) { S.elapsed += Date.now() - runStart; runSt
 const fmt = ms => { const t = Math.floor(ms / 1000), h = Math.floor(t / 3600), m = Math.floor(t / 60) % 60, s = t % 60;
   return (h ? h + ':' + String(m).padStart(2,'0') : m) + ':' + String(s).padStart(2,'0'); };
 
-// ---------- Rendering ----------
+// ================= Rendering =================
 const board = document.getElementById('board'), main = document.getElementById('main');
+function isPortrait() { return main.clientHeight > main.clientWidth * 1.15; }
 let els = [];
-function build() {
+function build(animate) {
   board.innerHTML = '';
   els = P.map((p, i) => {
     const d = document.createElement('div');
@@ -291,19 +448,26 @@ function build() {
     d.setAttribute('role', 'button');
     d.setAttribute('aria-label', NAMES(S.faces[i]));
     d.style.zIndex = p.z * 1000 + p.y * 32 + p.x;
+    if (animate) d.style.animationDelay = (p.z * 90 + (p.x + p.y) * 6) + 'ms';
     if (!S.present[i]) d.classList.add('gone', 'out');
     board.appendChild(d);
     return d;
   });
+  board.classList.remove('enter');
+  if (animate) { void board.offsetWidth; board.classList.add('enter'); setTimeout(() => board.classList.remove('enter'), 1600); }
+  document.getElementById('hLayout').textContent = LAYOUTS[S.layout].name;
+  const hd = document.getElementById('hDiff'); hd.textContent = DIFF[S.diff].name; hd.className = 'chip ' + S.diff;
   layout(); refresh();
 }
 function layout() {
+  if (!N) return;
   const W = main.clientWidth, H = main.clientHeight;
-  const ratio = 1.32, depth = .16;
-  const w = Math.max(14, Math.min(W / (15 + 5 * depth + .3), H / (8 * ratio + 5 * depth + .3)));
-  const h = w * ratio, d = w * depth, pad = 4 * d;
-  board.style.width = (15 * w + pad + d * 1.5) + 'px';
-  board.style.height = (8 * h + pad + d * 1.5) + 'px';
+  const cols = (Math.max(...P.map(p => p.x)) + 2) / 2, rws = (Math.max(...P.map(p => p.y)) + 2) / 2, mz = Math.max(...P.map(p => p.z));
+  const ratio = S.portrait ? 1.22 : 1.32, depth = S.portrait ? .13 : .16;
+  const w = Math.max(14, Math.min(W / (cols + (mz + 1.6) * depth), H / (rws * ratio + (mz + 1.6) * depth)));
+  const h = w * ratio, d = w * depth, pad = mz * d;
+  board.style.width = (cols * w + pad + d * 1.5) + 'px';
+  board.style.height = (rws * h + pad + d * 1.5) + 'px';
   board.style.setProperty('--w', w + 'px');
   board.style.setProperty('--d', d + 'px');
   els.forEach((el, i) => {
@@ -322,15 +486,18 @@ function freeMatches() {
 function refresh() {
   const left = S.present.filter(Boolean).length;
   let moves = 0;
-  const byG = freeMatches();
-  Object.values(byG).forEach(a => moves += a.length * (a.length - 1) / 2);
+  Object.values(freeMatches()).forEach(a => moves += a.length * (a.length - 1) / 2);
   els.forEach((el, i) => el.classList.toggle('blocked', S.present[i] && !isFree(i, S.present)));
   document.getElementById('sLeft').textContent = left;
-  document.getElementById('sMoves').textContent = moves;
+  document.getElementById('sMoves').textContent = S.diff === 'hard' ? '?' : moves;
   document.getElementById('bUndo').disabled = !S.history.length;
+  document.getElementById('nHint').textContent = S.hints < 0 ? '' : S.hints;
+  document.getElementById('nShuf').textContent = S.shuf < 0 ? '' : S.shuf;
+  document.getElementById('bHint').disabled = S.hints === 0;
+  document.getElementById('bShuffle').disabled = S.shuf === 0;
   document.body.classList.toggle('dim', prefs.dim);
-  const bd = document.getElementById('bDim'); bd.setAttribute('aria-pressed', prefs.dim);
-  const best = +store.get(BEST) || 0;
+  document.getElementById('bDim').setAttribute('aria-pressed', prefs.dim);
+  const best = bests[bestKey()];
   document.getElementById('sBest').textContent = best ? fmt(best) : '—';
   tick();
   showBanner(left > 0 && moves === 0);
@@ -339,10 +506,10 @@ function refresh() {
 function tick() { document.getElementById('sTime').textContent = fmt(elapsed()); }
 setInterval(() => { if (runStart) tick(); }, 1000);
 
-// ---------- Play ----------
+// ================= Play =================
 function clearHints() { els.forEach(e => e.classList.remove('hint')); }
 function select(i) {
-  if (selected >= 0) els[selected].classList.remove('sel');
+  if (selected >= 0 && els[selected]) els[selected].classList.remove('sel');
   selected = i;
   if (i >= 0) els[i].classList.add('sel');
 }
@@ -353,9 +520,7 @@ board.addEventListener('click', e => {
   clearHints();
   if (!isFree(i, S.present)) { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); return; }
   if (selected === i) { select(-1); return; }
-  if (selected >= 0 && group(S.faces[selected]) === group(S.faces[i])) {
-    const a = selected; select(-1); remove(a, i); return;
-  }
+  if (selected >= 0 && group(S.faces[selected]) === group(S.faces[i])) { const a = selected; select(-1); remove(a, i); return; }
   select(i);
 });
 function remove(a, b) {
@@ -366,84 +531,149 @@ function remove(a, b) {
   refresh(); save();
 }
 function undo() {
-  const last = S.history.pop(); if (!last || S.won) { if (last) S.history.push(last); return; }
+  if (S.won || !S.history.length) return;
+  const last = S.history.pop();
   select(-1); clearHints();
   last.forEach(k => { S.present[k] = true; els[k].classList.remove('out'); void els[k].offsetWidth; els[k].classList.remove('gone'); });
   refresh(); save();
 }
 function hint() {
+  if (S.hints === 0 || S.won) return;
   clearHints(); select(-1);
   const pair = Object.values(freeMatches()).find(a => a.length >= 2);
   if (!pair) return;
+  if (S.hints > 0) S.hints--;
   pair.slice(0, 2).forEach(k => { void els[k].offsetWidth; els[k].classList.add('hint'); });
+  refresh(); save();
 }
 function reshuffle() {
+  if (S.shuf === 0 || S.won) return;
   const idx = [...Array(N).keys()].filter(i => S.present[i]);
   if (!idx.length) return;
   const byG = {};
   idx.forEach(i => (byG[group(S.faces[i])] ||= []).push(S.faces[i]));
   const pairs = [];
   Object.values(byG).forEach(a => { for (let k = 0; k + 1 < a.length; k += 2) pairs.push([a[k], a[k+1]]); });
-  const faces = deal(idx, pairs);
+  const faces = deal(idx, pairs, 'medium');
   if (!faces) return;
+  if (S.shuf > 0) S.shuf--;
   idx.forEach(i => { S.faces[i] = faces[i]; els[i].innerHTML = faceSVG(faces[i]); els[i].setAttribute('aria-label', NAMES(faces[i])); });
   S.history = []; select(-1); clearHints();
   board.animate?.([{ opacity: .4 }, { opacity: 1 }], { duration: 300 });
   refresh(); save();
 }
 
-// ---------- Banners / overlay ----------
+// ================= Banners / overlays =================
 let bannerEl = null;
 function showBanner(on) {
-  if (!on) { bannerEl?.remove(); bannerEl = null; return; }
-  if (bannerEl) return;
+  bannerEl?.remove(); bannerEl = null;
+  if (!on) return;
   bannerEl = document.createElement('div');
   bannerEl.className = 'banner';
-  bannerEl.innerHTML = `<span>Свободных пар больше нет.</span><button class="primary" id="bbShuffle">Перемешать</button><button id="bbUndo">Отменить ход</button>`;
+  bannerEl.innerHTML = `<span>Свободных пар больше нет.</span>` +
+    (S.shuf !== 0 ? `<button class="primary" data-a="shuf">Перемешать</button>` : '') +
+    (S.history.length ? `<button data-a="undo">Отменить ход</button>` : '') +
+    `<button data-a="new">Новая игра</button>`;
   main.appendChild(bannerEl);
-  bannerEl.querySelector('#bbShuffle').onclick = reshuffle;
-  bannerEl.querySelector('#bbUndo').onclick = undo;
+  bannerEl.onclick = e => { const a = e.target.closest('button')?.dataset.a; if (a === 'shuf') reshuffle(); if (a === 'undo') undo(); if (a === 'new') openPicker(); };
 }
 let overlay = null;
 function closeOverlay() { overlay?.remove(); overlay = null; }
-function win() {
-  stopClock(); S.won = true;
-  const t = S.elapsed, best = +store.get(BEST) || 0, record = !best || t < best;
-  if (record) store.set(BEST, t);
-  save(); refresh();
+function openOverlay(html) {
+  closeOverlay();
   overlay = document.createElement('div');
   overlay.className = 'overlay';
-  overlay.innerHTML = `<div class="card" role="dialog" aria-label="Победа"><div class="seal" style="margin:0 auto">麻</div>
-    <h2>Поле очищено</h2><p class="big">${fmt(t)}</p>
-    <p>${record ? 'Это новый рекорд!' : 'Рекорд: ' + fmt(best)}</p>
-    <div class="row"><button class="primary" id="bAgain">Новая игра</button></div></div>`;
+  overlay.innerHTML = html;
   document.body.appendChild(overlay);
-  overlay.querySelector('#bAgain').onclick = newGame;
-  overlay.querySelector('#bAgain').focus();
+  return overlay;
+}
+function win() {
+  stopClock(); S.won = true;
+  const t = S.elapsed, key = bestKey(), best = bests[key], record = !best || t < best;
+  if (record) { bests[key] = t; store.set(BEST, JSON.stringify(bests)); }
+  save(); refresh();
+  const o = openOverlay(`<div class="card" role="dialog" aria-label="Победа"><div class="seal" style="margin:0 auto">麻</div>
+    <h2>Поле очищено</h2><p>${LAYOUTS[S.layout].name} · ${DIFF[S.diff].name.toLowerCase()}</p><p class="big">${fmt(t)}</p>
+    <p>${record ? 'Это новый рекорд!' : 'Рекорд: ' + fmt(best)}</p>
+    <div class="row"><button class="primary" id="oSame">Ещё раз</button><button id="oPick">Другая раскладка</button></div></div>`);
+  o.querySelector('#oSame').onclick = () => newGame(S.layout, S.diff);
+  o.querySelector('#oPick').onclick = openPicker;
+  o.querySelector('#oSame').focus();
 }
 
-// ---------- Controls ----------
+// Layout preview drawn on a small canvas
+function drawPreview(cv, pos) {
+  if (isPortrait()) pos = pos.map(([x, y, z]) => [y, x, z]);
+  const dpr = window.devicePixelRatio || 1, cw = cv.clientWidth || 160, ch = cv.clientHeight || 100;
+  cv.width = cw * dpr; cv.height = ch * dpr;
+  const c = cv.getContext('2d'); c.scale(dpr, dpr);
+  const cs = getComputedStyle(document.documentElement);
+  const tile = cs.getPropertyValue('--tile').trim(), back = cs.getPropertyValue('--tile-back').trim(), edge = cs.getPropertyValue('--tile-edge').trim();
+  const xs = pos.map(p => p[0]), ys = pos.map(p => p[1]);
+  const minX = Math.min(...xs), minY = Math.min(...ys);
+  const cols = Math.max(...xs) - minX + 1, rws = Math.max(...ys) - minY + 1;
+  const tw = Math.min((cw - 12) / (cols + .5), (ch - 12) / ((rws + .4) * 1.32)), th = tw * 1.32, d = tw * .16;
+  const ox = (cw - cols * tw) / 2, oy = (ch - rws * th) / 2;
+  pos.slice().sort((a, b) => a[2] - b[2] || a[1] - b[1] || a[0] - b[0]).forEach(([x, y, z]) => {
+    const px = ox + (x - minX) * tw - z * d, py = oy + (y - minY) * th - z * d;
+    c.fillStyle = back; c.fillRect(px + d * .6, py + d * .6, tw - 1, th - 1);
+    c.fillStyle = z % 2 ? edge : tile; c.fillRect(px, py, tw - 1, th - 1);
+  });
+}
+let pick = null;
+function openPicker() {
+  pick = { layout: prefs.layout, diff: prefs.diff, randPos: genRandom() };
+  const inGame = S && !S.won && S.history.length > 0;
+  const o = openOverlay(`<div class="card picker" role="dialog" aria-label="Новая игра">
+    <h2>Новая игра</h2>
+    <div class="lbl">Раскладка</div>
+    <div class="layouts">${ORDER.map(k => `<button class="lay" data-k="${k}"><canvas></canvas><span class="nm">${LAYOUTS[k].name}</span><span class="ct"></span></button>`).join('')}</div>
+    <div class="lbl">Сложность</div>
+    <div class="seg">${Object.keys(DIFF).map(k => `<button data-d="${k}">${DIFF[k].name}</button>`).join('')}</div>
+    <p class="desc" id="pDesc"></p>
+    <div class="row">${S ? `<button id="pCancel">${inGame ? 'Вернуться к партии' : 'Отмена'}</button>` : ''}<button class="primary" id="pGo">Начать</button></div>
+  </div>`);
+  const sync = () => {
+    o.querySelectorAll('.lay').forEach(b => {
+      const k = b.dataset.k, pos = k === 'random' ? pick.randPos : LAYOUTS[k].build();
+      b.setAttribute('aria-pressed', k === pick.layout);
+      b.querySelector('.ct').textContent = (k === 'random' ? 'Нажмите ещё раз — новая форма. ' : LAYOUTS[k].note + '. ') + pos.length + ' ' + (n => n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'фишки' : n % 10 === 1 && n % 100 !== 11 ? 'фишка' : 'фишек')(pos.length);
+    });
+    o.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.d === pick.diff));
+    o.querySelector('#pDesc').textContent = DIFF[pick.diff].desc;
+  };
+  const drawAll = () => o.querySelectorAll('.lay').forEach(b => drawPreview(b.querySelector('canvas'), b.dataset.k === 'random' ? pick.randPos : LAYOUTS[b.dataset.k].build()));
+  o.querySelector('.layouts').onclick = e => {
+    const b = e.target.closest('.lay'); if (!b) return;
+    if (b.dataset.k === 'random' && pick.layout === 'random') { pick.randPos = genRandom(); drawPreview(b.querySelector('canvas'), pick.randPos); }
+    pick.layout = b.dataset.k; sync();
+  };
+  o.querySelector('.seg').onclick = e => { const b = e.target.closest('button'); if (b) { pick.diff = b.dataset.d; sync(); } };
+  o.querySelector('#pCancel')?.addEventListener('click', closeOverlay);
+  o.querySelector('#pGo').onclick = () => newGame(pick.layout, pick.diff, pick.layout === 'random' ? pick.randPos : null);
+  o.addEventListener('click', e => { if (e.target === o && S) closeOverlay(); });
+  sync(); requestAnimationFrame(drawAll);
+}
+
+// ================= Controls =================
 document.getElementById('bHint').onclick = hint;
 document.getElementById('bUndo').onclick = undo;
 document.getElementById('bShuffle').onclick = reshuffle;
-let confirmNew = 0;
-const bNew = document.getElementById('bNew');
-bNew.onclick = () => {
-  const inProgress = S.history.length > 0 && !S.won;
-  if (inProgress && Date.now() - confirmNew > 2500) { confirmNew = Date.now(); bNew.textContent = 'Точно? Нажмите ещё раз'; setTimeout(() => bNew.textContent = 'Новая игра', 2500); return; }
-  bNew.textContent = 'Новая игра'; confirmNew = 0; newGame();
-};
-document.getElementById('bDim').onclick = () => { prefs.dim = !prefs.dim; store.set('mahjong-prefs', JSON.stringify(prefs)); refresh(); };
+document.getElementById('bNew').onclick = openPicker;
+document.getElementById('bDim').onclick = () => { prefs.dim = !prefs.dim; savePrefs(); refresh(); };
 document.addEventListener('keydown', e => {
-  if (e.key === 'h' || e.key === 'H' || e.key === 'р' || e.key === 'Р') hint();
-  else if ((e.key === 'z' || e.key === 'Z' || e.key === 'я' || e.key === 'Я')) { e.preventDefault(); undo(); }
-  else if (e.key === 'Escape') select(-1);
+  if (overlay) { if (e.key === 'Escape' && S && !S.won) closeOverlay(); return; }
+  const k = e.key.toLowerCase();
+  if (k === 'h' || k === 'р') hint();
+  else if (k === 'z' || k === 'я') { e.preventDefault(); undo(); }
+  else if (k === 'escape') select(-1);
 });
 document.addEventListener('visibilitychange', () => { if (document.hidden) { stopClock(); save(); } else startClock(); });
 window.addEventListener('pagehide', save);
 new ResizeObserver(layout).observe(main);
 
-if (load()) { build(); startClock(); } else newGame();
+if (load() && (S.started || !!S.portrait === isPortrait())) { build(false); startClock(); }
+else if (S) newGame(S.layout, S.diff); else newGame(LAYOUTS[prefs.layout] ? prefs.layout : 'turtle', DIFF[prefs.diff] ? prefs.diff : 'medium');
 document.fonts?.ready.then(() => layout());
 })();
 </script>
